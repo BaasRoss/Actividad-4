@@ -81,7 +81,7 @@ manera_muerte= "MANERA_MUERTE"
 ciudad_col = "MUNICIPIO"
 df_homicidios = df[df[manera_muerte].astype(str).str.strip().str.lower() == 'homicidio']
 
-totales_ciudad = (
+top_homicidios = (
     df_homicidios
     .groupby(ciudad_col, dropna=False)
     .size()
@@ -90,7 +90,35 @@ totales_ciudad = (
     .head(5)
 )
 
-print(totales_ciudad.to_string(index=False))
+# print(top_homicidios.to_string(index=False))
+
+
+# Caso 4: CIUDADES CON MENOS MUERTES
+
+top_menos_mortandad = (
+    df_2019
+    .groupby(ciudad_col, dropna=False)
+    .size()
+    .reset_index(name='muertes')
+    .sort_values('muertes', ascending=True)
+    .head(10)
+)
+
+#print(top_menos_mortandad.to_string(index=False))
+
+
+# Caso 5: PRINCIPALES CAUSAS DE MUERTE
+codigo_muerte = "COD_MUERTE"
+
+top_causas = (
+    df_2019
+    .groupby(manera_muerte, dropna=False)
+    .size()
+    .reset_index(name='muertes')
+    .sort_values('muertes', ascending=False)
+    .head(10)
+)
+print(top_causas.to_string(index=False))
 
 
 
