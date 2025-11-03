@@ -100,3 +100,6 @@ python3 -m pip install -r requirements.txt
 python src/app.py
 ```
 Abrir: http://127.0.0.1:8050
+## Visualizaciones con explicaciones de los resultados
+![Mapa de muertes por departamento](Imagenes/Mapa de muertes por departamento.png)
+ 
