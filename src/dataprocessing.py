@@ -157,7 +157,7 @@ def muertesdepartamentoysexo():
         .reset_index(name="total")
     )
 
-    return detalle
+    return detalle, totales
 
 
 # Caso 7: DISTRIBUCION DE MUERTES POR GRUPOS DE EDAD

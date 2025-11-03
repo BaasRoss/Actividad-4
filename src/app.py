@@ -6,6 +6,7 @@ import ssl
 import certifi
 import unicodedata
 from dataprocessing import *
+import pandas as pd
  
 # Cargar datos procesados
 totales_dept = muertespordepartamento()
@@ -14,6 +15,7 @@ totales_ciudad = top_homicidiosporciudad()
 top_menos_mortandad = top_ciudadesmenosmuertes()
 top_causas = top_causasdemuerte()
 muertesporsexo = muertesdepartamentoysexo()
+totales_por_categoria = distribucionmuertesporgruposedad()
  
 # Cargar el GeoJSON de departamentos de Colombia
 url_geo = "https://raw.githubusercontent.com/caticoa3/colombia_mapa/master/co_2018_MGN_DPTO_POLITICO.geojson"
@@ -55,6 +57,8 @@ fig_mapa = px.choropleth_mapbox(
     zoom=4,
     center={"lat": 4.5709, "lon": -74.2973},
     opacity=0.7,
+    height=800,  
+    width=1000, 
     title="Distribución de muertes por departamento (2019)"
 )
  
@@ -90,31 +94,46 @@ fig_pie_menos = px.pie(
 # Tabla
 table_causas = dash_table.DataTable(
     data=top_causas.to_dict("records"),
-    columns=[{"name": col, "id": col} for col in top_causas.columns],
+    columns=[
+        {"name": "Manera de muerte", "id": "MANERA_MUERTE"},
+        {"name": "Codigo de muerte", "id": "COD_MUERTE"},
+        {"name": "Numero de muertes", "id": "muertes"},
+        {"name": "Descripcion de código de mortalidad", "id": "Descripcion  de códigos mortalidad a cuatro caracteres"}
+    ],
     page_size=10,
     sort_action="native",
     filter_action="native",
     style_table={"overflowX": "auto"},
-    style_cell={"textAlign": "left", "padding": "5px", "whiteSpace": "normal"},
-    style_header={"fontWeight": "bold"}
+    style_cell={"textAlign": "left", "padding": "5px", "whiteSpace": "normal", "fontFamily": "'Helvetica Neue', Arial, sans-serif", "fontSize": "14px", "color": "#333"},
+    style_header={"fontWeight": "bold", "fontFamily": "'Helvetica Neue', Arial, sans-serif", "fontSize": "15px", "backgroundColor": "#f9f9f9"}
 )
 
-# Preparar gráfico de barras apiladas por departamento y sexo
-sexo_map = {'1': 'Masculino', '2': 'Femenino', '3': 'Indeterminado'}
-# `df` viene de dataprocessing (se importó con `from dataprocessing import *`)
-df_tmp = df.copy()
-df_tmp['SEXO'] = df_tmp['SEXO'].astype(str).str.strip().replace(sexo_map).fillna('Indeterminado')
-df_tmp['DEPARTAMENTO'] = df_tmp['DEPARTAMENTO'].apply(normalizar)
-dept_sexo_counts = (
-    df_tmp
-    .groupby(['DEPARTAMENTO', 'SEXO'], dropna=False)
-    .size()
-    .reset_index(name='muertes')
-)
-# Ordenar departamentos por total de muertes para mostrar en el mismo orden
+# Gráfico de barras apiladas
+if isinstance(muertesporsexo, tuple) and len(muertesporsexo) >= 1:
+    detalle_df = muertesporsexo[0]
+else:
+    detalle_df = pd.DataFrame()
+
+rows = []
+if not detalle_df.empty:
+    for _, r in detalle_df.iterrows():
+        dept = r.get('DEPARTAMENTO') if 'DEPARTAMENTO' in r else r.get('DEPARTAMENTO') if 'DEPARTAMENTO' in r else r.iloc[0]
+        for d in r['detalle']:
+            rows.append({'DEPARTAMENTO': dept, 'SEXO': d.get('SEXO'), 'muertes': d.get('muertes')})
+    dept_sexo_counts = pd.DataFrame(rows)
+
+else:
+    dept_sexo_counts = pd.DataFrame(columns=['DEPARTAMENTO', 'SEXO', 'muertes'])
+
 orden_dept = totales_dept['DEPARTAMENTO'].tolist()
-dept_sexo_counts['DEPARTAMENTO'] = pd.Categorical(dept_sexo_counts['DEPARTAMENTO'], categories=orden_dept, ordered=True)
-dept_sexo_counts = dept_sexo_counts.sort_values('DEPARTAMENTO')
+
+if 'DEPARTAMENTO' in dept_sexo_counts.columns:
+    dept_sexo_counts['DEPARTAMENTO'] = dept_sexo_counts['DEPARTAMENTO'].astype(str).apply(normalizar)
+    dept_sexo_counts['DEPARTAMENTO'] = pd.Categorical(dept_sexo_counts['DEPARTAMENTO'], categories=orden_dept, ordered=True)
+    dept_sexo_counts = dept_sexo_counts.sort_values('DEPARTAMENTO')
+    
+    
+    
 
 fig_stacked = px.bar(
     dept_sexo_counts,
@@ -122,21 +141,53 @@ fig_stacked = px.bar(
     y='muertes',
     color='SEXO',
     title='Muertes por departamento y sexo (apilado)',
-    labels={'DEPARTAMENTO': 'Departamento', 'muertes': 'Número de muertes', 'SEXO': 'Sexo'}
+    labels={'DEPARTAMENTO': 'Departamento', 'muertes': 'Número de muertes', 'SEXO': 'Sexo'},
+    height=800,  
+    width=1000  
 )
-fig_stacked.update_layout(barmode='stack', xaxis={'categoryorder':'array', 'categoryarray': orden_dept}, margin={'t':40,'b':150}, legend_title_text='Sexo')
+fig_stacked.update_layout(barmode='stack', xaxis={'categoryorder':'array', 'categoryarray': orden_dept}, margin={'t':40,'b':350}, legend_title_text='Sexo')
+
+# Histograma 
+fig_hist_categoria = px.bar(
+    totales_por_categoria,
+    x='CATEGORIA_EDAD',
+    y='total_muertes',
+    title='Distribución de muertes por grupos de edad',
+    labels={'CATEGORIA_EDAD': 'Grupo de edad', 'total_muertes': 'Número de muertes'}
+)
+fig_hist_categoria.update_layout(xaxis_tickangle=-45, margin={'t':40,'b':150})
 
 # Aplicación Dash
 
 app = Dash(__name__)
 app.title = "Mortalidad en Colombia 2019"
- 
+
+# Página con fondo azul oscuro y texto claro
+app.index_string = """<!DOCTYPE html>
+<html>
+    <head>
+        {%metas%}
+        <title>{%title%}</title>
+        {%favicon%}
+        {%css%}
+        <style>body { background-color: #071428; color: #ffffff; }</style>
+    </head>
+    <body>
+        {%app_entry%}
+        <footer>
+            {%config%}
+            {%scripts%}
+            {%renderer%}
+        </footer>
+    </body>
+</html>"""
+
 app.layout = html.Div(
-    style={"fontFamily": "Arial", "maxWidth": "1000px", "margin": "20px auto"},
+    style={"fontFamily": "Arial", "maxWidth": "1000px", "margin": "20px auto", "backgroundColor": "#0b2545", "color": "#ffffff", "padding": "20px", "borderRadius": "8px"},
     children=[
         html.H1("Mortalidad en Colombia 2019", style={"textAlign": "center"}),
- 
-        html.H3("Distribución por departamento (Mapa)"),
+
+        html.H3("Distribución por departamento"),
         dcc.Graph(figure=fig_mapa),
         
         html.H3("Distribución por mes"),
@@ -151,8 +202,11 @@ app.layout = html.Div(
         html.H3("Top 10 principales causas de muerte"),
         table_causas,
 
-        html.H3("Muertes por departamento y sexo (apilado)"),
+        html.H3("Muertes por departamento y sexo"),
         dcc.Graph(figure=fig_stacked),
+        
+        html.H3("Distribución por grupos de edad"),
+        dcc.Graph(figure=fig_hist_categoria),
 
     ]
 )
