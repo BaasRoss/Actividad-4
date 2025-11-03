@@ -48,7 +48,7 @@ totales_dept = (
     .sort_values('muertes', ascending=False)
 )
 
-print(totales_dept.to_string(index=False))
+#print(totales_dept.to_string(index=False))
 
 # Caso 2: DISTRIBUCION DE MUERTES POR MES
 
@@ -74,7 +74,24 @@ orden_meses = list(meses_dict.values())
 totales_mes[mes_col] = pd.Categorical(totales_mes[mes_col], categories=orden_meses, ordered=True)
 totales_mes = totales_mes.sort_values(mes_col)
 
-print(totales_mes.to_string(index=False))
+#print(totales_mes.to_string(index=False))
+
+# Caso 3: TOP HOMICIDIOS POR CIUDAD
+manera_muerte= "MANERA_MUERTE"
+ciudad_col = "MUNICIPIO"
+df_homicidios = df[df[manera_muerte].astype(str).str.strip().str.lower() == 'homicidio']
+
+totales_ciudad = (
+    df_homicidios
+    .groupby(ciudad_col, dropna=False)
+    .size()
+    .reset_index(name='muertes')
+    .sort_values('muertes', ascending=False)
+    .head(5)
+)
+
+print(totales_ciudad.to_string(index=False))
+
 
 
 
