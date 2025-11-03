@@ -50,6 +50,35 @@ totales_dept = (
 
 print(totales_dept.to_string(index=False))
 
+# Caso 2: DISTRIBUCION DE MUERTES POR MES
+
+mes_col = "MES"
+
+totales_mes = (
+    df_2019
+    .groupby(mes_col, dropna=False)
+    .size()
+    .reset_index(name='muertes')
+    .sort_values('muertes', ascending=False)
+)
+
+meses_dict = {
+    1: "enero", 2: "febrero", 3: "marzo", 4: "abril",
+    5: "mayo", 6: "junio", 7: "julio", 8: "agosto",
+    9: "septiembre", 10: "octubre", 11: "noviembre", 12: "diciembre"
+}
+
+totales_mes[mes_col] = totales_mes[mes_col].map(meses_dict)
+
+orden_meses = list(meses_dict.values())
+totales_mes[mes_col] = pd.Categorical(totales_mes[mes_col], categories=orden_meses, ordered=True)
+totales_mes = totales_mes.sort_values(mes_col)
+
+print(totales_mes.to_string(index=False))
+
+
+
+
 
 
 
