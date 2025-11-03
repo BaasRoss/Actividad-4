@@ -12,7 +12,7 @@ print(df.columns.tolist())
 print(codigos.columns.tolist())
 print(divipola.columns.tolist())
 
-# Preparar datos
+# -------- Preparar datos ---------
 codigo_muerte = "COD_MUERTE"
 codigo_cie = "Código de la CIE-10 tres caracteres"
 codigo_departamento = "COD_DEPARTAMENTO"
@@ -39,8 +39,8 @@ df = df.merge(divipola, left_on=[codigo_departamento, codigo_municipio], right_o
 
 # Caso 1: DISTRIBUCION DE MUERTES POR DEPARTAMENTO 
 
-df['__anio__'] = pd.to_numeric(df[ano_col], errors='coerce')
-df_2019 = df[df['__anio__'] == 2019].copy()
+df['ano_col'] = pd.to_numeric(df[ano_col], errors='coerce')
+df_2019 = df[df['ano_col'] == 2019].copy()
 
 totales_dept = (
     df_2019
@@ -50,7 +50,7 @@ totales_dept = (
     .sort_values('muertes', ascending=False)
 )
 
-#print(totales_dept.to_string(index=False))
+# print(totales_dept.to_string(index=False))
 
 # Caso 2: DISTRIBUCION DE MUERTES POR MES
 
@@ -130,7 +130,10 @@ top_causas = top_causas[[
 #print(top_causas.to_string(index=False))
 
 
-# Caso 6: MUERTES POR DEPARTAMENTO Y SEXO (alternativa 4: detalle por departamento)
+# Caso 6: MUERTES POR DEPARTAMENTO Y SEXO 
+
+sexo_map = {'1': 'Masculino', '2': 'Femenino', '3': 'Indeterminado'}
+df_2019['SEXO'] = df_2019['SEXO'].astype(str).str.strip().replace(sexo_map).fillna('Indeterminado')
 
 dept_sexo = (
     df_2019
