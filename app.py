@@ -108,19 +108,39 @@ top_menos_mortandad = (
 
 
 # Caso 5: PRINCIPALES CAUSAS DE MUERTE
-codigo_muerte = "COD_MUERTE"
 
 top_causas = (
     df_2019
-    .groupby(manera_muerte, dropna=False)
+    .groupby(["MANERA_MUERTE", "COD_MUERTE"], dropna=False)
     .size()
-    .reset_index(name='muertes')
-    .sort_values('muertes', ascending=False)
+    .reset_index(name="muertes")
+    .sort_values("muertes", ascending=False)
     .head(10)
 )
+
+top_causas = top_causas.merge(codigos,left_on="COD_MUERTE",right_on="Código de la CIE-10 cuatro caracteres",how="left")
+
+top_causas = top_causas[[
+    "MANERA_MUERTE",
+    "COD_MUERTE",
+    "muertes",
+    "Descripcion  de códigos mortalidad a cuatro caracteres"
+]]
+
 print(top_causas.to_string(index=False))
 
 
+# Caso 6: MUERTES POR DEPARTAMENTO Y SEXO 
+
+totales_dept_sexo = (
+    df_2019
+    .groupby([dept_col, "SEXO"], dropna=False)
+    .size()
+    .reset_index(name="muertes")
+    .sort_values(by=[dept_col, "SEXO"])
+)
+
+#print(totales_dept_sexo.to_string(index=False))
 
 
 
